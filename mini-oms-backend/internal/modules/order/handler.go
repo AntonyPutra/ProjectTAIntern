@@ -22,7 +22,6 @@ func (h *Handler) GetAll(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)
 
 	var orders []interface{}
-	var err error
 
 	if userRole == "admin" {
 		// Admin sees all orders
