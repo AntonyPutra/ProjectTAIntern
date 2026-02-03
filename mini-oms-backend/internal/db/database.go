@@ -18,7 +18,7 @@ func Connect(cfg *config.Config) error {
 
 	// Configure GORM logger
 	gormConfig := &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Silent),
 	}
 
 	if !cfg.IsDevelopment() {

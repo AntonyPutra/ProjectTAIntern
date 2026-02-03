@@ -1,6 +1,7 @@
 package payment
 
 import (
+	"fmt"
 	"mini-oms-backend/internal/utils"
 	"net/http"
 
@@ -35,14 +36,20 @@ func (h *Handler) GetByOrderID(c echo.Context) error {
 func (h *Handler) Create(c echo.Context) error {
 	var req CreatePaymentRequest
 	if err := c.Bind(&req); err != nil {
+		utils.LogError("PaymentService", "", "CreatePayment", err, "Failed to bind request")
 		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
 	}
 
+	// Log incoming request
+	utils.LogInfo("PaymentService", req.OrderID.String(), "CreatePayment", fmt.Sprintf("Payment method: %s", req.PaymentMethod))
+
 	payment, err := h.service.CreatePayment(&req)
 	if err != nil {
+		utils.LogError("PaymentService", req.OrderID.String(), "CreatePayment", err, "Failed to create payment")
 		return utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
 	}
 	// Public response for creation
+	utils.LogInfo("PaymentService", payment.ID.String(), "CreatePayment", "Payment created successfully")
 	return utils.SuccessResponse(c, http.StatusCreated, "Payment created successfully", payment)
 }
 
@@ -64,10 +71,14 @@ func (h *Handler) Verify(c echo.Context) error {
 	// Get admin ID from context
 	adminID := c.Get("user_id").(uuid.UUID)
 
+	utils.LogInfo("PaymentService", paymentID.String(), "VerifyPayment", fmt.Sprintf("Verification requested by admin %s", adminID))
+
 	payment, err := h.service.VerifyPayment(paymentID, adminID)
 	if err != nil {
+		utils.LogError("PaymentService", paymentID.String(), "VerifyPayment", err, "Verification failed")
 		return utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
 	}
 
+	utils.LogInfo("PaymentService", paymentID.String(), "VerifyPayment", "Payment verified successfully")
 	return utils.SuccessResponse(c, http.StatusOK, "Payment verified successfully", payment)
 }

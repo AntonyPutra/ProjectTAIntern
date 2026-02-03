@@ -1,6 +1,7 @@
 package product
 
 import (
+	"fmt"
 	"mini-oms-backend/internal/utils"
 	"net/http"
 
@@ -18,26 +19,35 @@ func NewHandler(service *Service) *Handler {
 
 // GetAll returns all products
 func (h *Handler) GetAll(c echo.Context) error {
+	utils.LogInfo("ProductService", "", "GetAllProducts", "Fetching all products")
+
 	products, err := h.service.GetAll()
 	if err != nil {
+		utils.LogError("ProductService", "", "GetAllProducts", err, "Failed to fetch products")
 		return utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch products")
 	}
 
+	utils.LogInfo("ProductService", "", "GetAllProducts", fmt.Sprintf("Retrieved %d products", len(products)))
 	return utils.SuccessResponse(c, http.StatusOK, "Products retrieved successfully", products)
 }
 
 // GetByID returns product by ID
 func (h *Handler) GetByID(c echo.Context) error {
-	id, err := uuid.Parse(c.Param("id"))
+	idParam := c.Param("id")
+	id, err := uuid.Parse(idParam)
 	if err != nil {
 		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid product ID")
 	}
 
+	utils.LogInfo("ProductService", id.String(), "GetProduct", "Fetching product details")
+
 	product, err := h.service.GetByID(id)
 	if err != nil {
+		utils.LogError("ProductService", id.String(), "GetProduct", err, "Product not found")
 		return utils.ErrorResponse(c, http.StatusNotFound, "Product not found")
 	}
 
+	utils.LogInfo("ProductService", id.String(), "GetProduct", "Product retrieved: "+product.Name)
 	return utils.SuccessResponse(c, http.StatusOK, "Product retrieved successfully", product)
 }
 

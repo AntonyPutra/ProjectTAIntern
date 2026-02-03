@@ -37,10 +37,15 @@ const OrderDetailPage = () => {
     };
 
     const isAdmin = () => {
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-            const user = JSON.parse(userStr);
-            return user.role === 'admin';
+        try {
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                return user?.role === 'admin';
+            }
+        } catch (e) {
+            console.error("Error parsing user from local storage", e);
+            return false;
         }
         return false;
     };
@@ -73,48 +78,42 @@ const OrderDetailPage = () => {
     };
 
     const formatPrice = (price) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0,
-        }).format(price);
+        if (price === undefined || price === null) return 'Rp 0';
+        try {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+            }).format(price);
+        } catch (e) {
+            console.error("Format price error", e);
+            return 'Rp ' + price;
+        }
     };
 
-    // ... (skip lines)
-
-    {
-        !payment && order.status !== 'canceled' && (
-            <div className="payment-action" style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                <Link to={`/orders/${order.id}/payment`} className="btn-payment">
-                    Create Payment
-                </Link>
-
-                {(order.status === 'created' || order.status === 'pending') && (
-                    <button
-                        onClick={handleCancelOrder}
-                        className="btn-payment"
-                        style={{ backgroundColor: '#ef4444' }} // Red color
-                    >
-                        Cancel Order
-                    </button>
-                )}
-            </div>
-        )
-    }
-
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('id-ID', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
+        try {
+            if (!dateString) return '-';
+            return new Date(dateString).toLocaleDateString('id-ID', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        } catch (e) {
+            console.error("Format date error", e);
+            return dateString || '-';
+        }
     };
 
     if (loading) return <div className="loading">Loading...</div>;
     if (error) return <div className="error">{error}</div>;
     if (!order) return <div className="error">Order not found</div>;
+
+    // Debug logging
+    console.log("Rendering Order:", order);
+    console.log("Rendering Payment:", payment);
 
     return (
         <div className="order-detail-page">
@@ -124,25 +123,25 @@ const OrderDetailPage = () => {
 
             <div className="order-header">
                 <h1>Order Details</h1>
-                <div className="order-number">{order.order_number}</div>
+                <div className="order-number">{order?.order_number || order?.id}</div>
             </div>
 
             <div className="order-info-grid">
                 <div className="info-card">
                     <h3>Order Information</h3>
-                    <p><strong>Date:</strong> {formatDate(order.created_at)}</p>
-                    <p><strong>Status:</strong> <span className={`status-${order.status}`}>{order.status}</span></p>
-                    <p><strong>Total Amount:</strong> {formatPrice(order.total_amount)}</p>
-                    {order.notes && <p><strong>Notes:</strong> {order.notes}</p>}
+                    <p><strong>Date:</strong> {formatDate(order?.created_at)}</p>
+                    <p><strong>Status:</strong> <span className={`status-${order?.status}`}>{order?.status || 'unknown'}</span></p>
+                    <p><strong>Total Amount:</strong> {formatPrice(order?.total_amount)}</p>
+                    {order?.notes && <p><strong>Notes:</strong> {order.notes}</p>}
                 </div>
 
                 {payment && (
                     <div className="info-card">
                         <h3>Payment Information</h3>
-                        <p><strong>Payment Number:</strong> {payment.payment_number}</p>
-                        <p><strong>Method:</strong> {payment.payment_method}</p>
-                        <p><strong>Status:</strong> <span className={`status-${payment.status}`}>{payment.status}</span></p>
-                        <p><strong>Amount:</strong> {formatPrice(payment.amount)}</p>
+                        <p><strong>Payment Number:</strong> {payment?.payment_number || '-'}</p>
+                        <p><strong>Method:</strong> {payment?.payment_method || '-'}</p>
+                        <p><strong>Status:</strong> <span className={`status-${payment?.status}`}>{payment?.status || 'unknown'}</span></p>
+                        <p><strong>Amount:</strong> {formatPrice(payment?.amount)}</p>
                     </div>
                 )}
             </div>
@@ -159,31 +158,31 @@ const OrderDetailPage = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {order.items?.map((item) => (
-                            <tr key={item.id}>
-                                <td>{item.product_name}</td>
-                                <td>{formatPrice(item.product_price)}</td>
-                                <td>{item.quantity}</td>
-                                <td>{formatPrice(item.subtotal)}</td>
+                        {(order?.items || []).map((item, index) => (
+                            <tr key={item?.id || index}>
+                                <td>{item?.product_name || 'Product'}</td>
+                                <td>{formatPrice(item?.product_price)}</td>
+                                <td>{item?.quantity || 0}</td>
+                                <td>{formatPrice(item?.subtotal)}</td>
                             </tr>
                         ))}
                     </tbody>
                     <tfoot>
                         <tr>
                             <td colSpan="3"><strong>Total</strong></td>
-                            <td><strong>{formatPrice(order.total_amount)}</strong></td>
+                            <td><strong>{formatPrice(order?.total_amount)}</strong></td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
 
-            {!payment && order.status !== 'canceled' && (
+            {!payment && order?.status !== 'canceled' && (
                 <div className="payment-action" style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                     <Link to={`/orders/${order.id}/payment`} className="btn-payment">
                         Create Payment
                     </Link>
 
-                    {order.status === 'created' && (
+                    {order?.status === 'created' && (
                         <button
                             onClick={handleCancelOrder}
                             className="btn-payment"

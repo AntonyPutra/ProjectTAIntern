@@ -53,7 +53,8 @@ func generateOrderNumber() string {
 
 // CanBeCanceled checks if order can be canceled
 func (o *Order) CanBeCanceled() bool {
-	return o.Status == "created" || o.Status == "processing"
+	// Only 'created' (Unpaid) orders can be canceled by user/admin
+	return o.Status == "created"
 }
 
 // CanBeCompleted checks if order can be marked as completed

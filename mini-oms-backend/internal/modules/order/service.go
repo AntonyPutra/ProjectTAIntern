@@ -110,8 +110,10 @@ func (s *Service) CreateOrder(userID uuid.UUID, req *CreateOrderRequest) (*model
 		}
 	}
 
-	// Generate Order Number: ORD-YYYYMMDD-XXXX
-	orderNumber := fmt.Sprintf("ORD-%s-%04d", time.Now().Format("20060102"), rand.Intn(10000))
+	// Generate Order Number: ORD-YYYYMMDD-HHMMSS-XXXX (Collision resistant)
+	// We use local RNG to avoid global lock contention and seed it with time
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	orderNumber := fmt.Sprintf("ORD-%s-%04d", time.Now().Format("20060102-150405"), rng.Intn(10000))
 
 	// Create order
 	order := &models.Order{

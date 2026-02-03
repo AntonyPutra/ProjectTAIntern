@@ -24,11 +24,17 @@ const CreateOrderPage = () => {
     };
 
     const formatPrice = (price) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0,
-        }).format(price);
+        if (price === undefined || price === null) return 'Rp 0';
+        try {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+            }).format(price);
+        } catch (e) {
+            console.error("Format price error", e);
+            return 'Rp ' + price;
+        }
     };
 
     const handleSubmit = async (e) => {
