@@ -20,10 +20,13 @@ export const orderAPI = {
     getAll: () => apiClient.get('/api/orders'),
     getById: (id) => apiClient.get(`/api/orders/${id}`),
     create: (data) => apiClient.post('/api/orders', data),
+    cancel: (id) => apiClient.post(`/api/orders/${id}/cancel`),
+    getStats: () => apiClient.get('/api/admin/stats'),
 };
 
 // Payment API
 export const paymentAPI = {
     create: (data) => apiClient.post('/api/payments', data),
     getByOrderId: (orderId) => apiClient.get(`/api/payments/order/${orderId}`),
+    verify: (id) => apiClient.post(`/api/payments/${id}/verify`),
 };

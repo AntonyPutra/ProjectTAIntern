@@ -52,6 +52,7 @@ func AutoMigrate() error {
 		&models.Order{},
 		&models.OrderItem{},
 		&models.Payment{},
+		&models.AuditLog{},
 	)
 
 	if err != nil {

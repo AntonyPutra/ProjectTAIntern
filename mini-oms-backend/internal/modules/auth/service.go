@@ -24,6 +24,7 @@ type RegisterRequest struct {
 	Name     string `json:"name" validate:"required"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=6"`
+	Role     string `json:"role"` // Optional, defaults to "user"
 }
 
 // LoginRequest represents login request
@@ -53,12 +54,21 @@ func (s *Service) Register(req *RegisterRequest) (*AuthResponse, error) {
 		return nil, err
 	}
 
+	// Validate and set role
+	role := "user" // Default role
+	if req.Role != "" {
+		// Validate role (only "user" or "admin" allowed)
+		if req.Role == "user" || req.Role == "admin" {
+			role = req.Role
+		}
+	}
+
 	// Create user
 	user := &models.User{
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: hashedPassword,
-		Role:     "user", // Default role
+		Role:     role,
 	}
 
 	if err := s.repo.Create(user); err != nil {

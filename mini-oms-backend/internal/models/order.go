@@ -10,10 +10,10 @@ import (
 
 type Order struct {
 	ID          uuid.UUID      `gorm:"type:uuid;primary_key;" json:"id"`
-	UserID      uuid.UUID      `gorm:"type:uuid;not null;index" json:"user_id"`
-	OrderNumber string         `gorm:"type:varchar(50);uniqueIndex;not null" json:"order_number"`
+	UserID      uuid.UUID      `gorm:"type:uuid;index" json:"user_id"`
+	OrderNumber string         `gorm:"type:varchar(50);uniqueIndex" json:"order_number"` // New field
 	TotalAmount float64        `gorm:"type:decimal(12,2);not null" json:"total_amount"`
-	Status      string         `gorm:"type:varchar(20);not null;default:'created'" json:"status"` // created, processing, completed, canceled
+	Status      string         `gorm:"type:varchar(20);default:'created'" json:"status"` // created, processing, completed, canceled
 	Notes       string         `gorm:"type:text" json:"notes"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
@@ -24,6 +24,14 @@ type Order struct {
 	OrderItems []OrderItem `gorm:"foreignKey:OrderID" json:"items,omitempty"`
 	Payment    *Payment    `gorm:"foreignKey:OrderID" json:"payment,omitempty"`
 }
+
+// Order Status Constants
+const (
+	OrderStatusCreated    = "created"
+	OrderStatusProcessing = "processing" // Paid but not yet shipped
+	OrderStatusCompleted  = "completed"
+	OrderStatusCanceled   = "canceled"
+)
 
 func (o *Order) BeforeCreate(tx *gorm.DB) error {
 	if o.ID == uuid.Nil {

@@ -23,8 +23,17 @@ func (r *Repository) FindAll() ([]models.Product, error) {
 
 func (r *Repository) FindByID(id uuid.UUID) (*models.Product, error) {
 	var product models.Product
-	err := r.db.Preload("Category").First(&product, "id = ?", id).Error
+	err := r.db.First(&product, "id = ?", id).Error
 	return &product, err
+}
+
+// FindByIDWithLock finds a product and locks the row for update (Must be called within a transaction)
+func (r *Repository) FindByIDWithLock(tx *gorm.DB, id uuid.UUID) (*models.Product, error) {
+	var product models.Product
+	if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&product, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &product, nil
 }
 
 func (r *Repository) Create(product *models.Product) error {

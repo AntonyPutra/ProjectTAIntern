@@ -18,7 +18,10 @@ func NewRepository(db *gorm.DB) *Repository {
 func (r *Repository) FindByOrderID(orderID uuid.UUID) (*models.Payment, error) {
 	var payment models.Payment
 	err := r.db.Preload("Order").First(&payment, "order_id = ?", orderID).Error
-	return &payment, err
+	if err != nil {
+		return nil, err
+	}
+	return &payment, nil
 }
 
 func (r *Repository) Create(payment *models.Payment) error {
@@ -29,4 +32,12 @@ func (r *Repository) FindOrderByID(id uuid.UUID) (*models.Order, error) {
 	var order models.Order
 	err := r.db.First(&order, "id = ?", id).Error
 	return &order, err
+}
+
+func (r *Repository) UpdateStatus(payment *models.Payment) error {
+	return r.db.Save(payment).Error
+}
+
+func (r *Repository) UpdateOrderStatus(orderID uuid.UUID, status string) error {
+	return r.db.Model(&models.Order{}).Where("id = ?", orderID).Update("status", status).Error
 }

@@ -237,3 +237,46 @@
     border-radius: 0.75rem;
     box-shadow: var(--shadow);
 }
+
+/* Status Badges */
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-created {
+    background-color: #fef3c7;
+    color: #d97706;
+}
+
+.status-processing {
+    background-color: #dbeafe;
+    color: #2563eb;
+}
+
+.status-completed,
+.status-paid,
+.status-success {
+    background-color: #d1fae5;
+    color: #059669;
+    /* Green */
+}
+
+.status-pending {
+    background-color: #ffedd5;
+    color: #c2410c;
+    /* Orange */
+}
+
+.status-canceled {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.status-none {
+    background-color: #f3f4f6;
+    color: #6b7280;
+}

@@ -11,6 +11,8 @@ const OrderDetailPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    const [verifying, setVerifying] = useState(false);
+
     useEffect(() => {
         fetchOrderDetails();
     }, [id]);
@@ -34,6 +36,42 @@ const OrderDetailPage = () => {
         }
     };
 
+    const isAdmin = () => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            return user.role === 'admin';
+        }
+        return false;
+    };
+
+    const handleVerifyPayment = async (paymentId) => {
+        if (!window.confirm('Are you sure you want to verify this payment?')) return;
+
+        setVerifying(true);
+        try {
+            await paymentAPI.verify(paymentId);
+            alert('Payment verified successfully!');
+            fetchOrderDetails(); // Refresh data
+        } catch (err) {
+            alert('Failed to verify payment: ' + (err.response?.data?.message || err.message));
+        } finally {
+            setVerifying(false);
+        }
+    };
+
+    const handleCancelOrder = async () => {
+        if (!window.confirm('Are you sure you want to cancel this order? Stock will be restored.')) return;
+
+        try {
+            await orderAPI.cancel(id);
+            alert('Order canceled successfully!');
+            fetchOrderDetails(); // Refresh data
+        } catch (err) {
+            alert('Failed to cancel order: ' + (err.response?.data?.message || err.message));
+        }
+    };
+
     const formatPrice = (price) => {
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -41,6 +79,28 @@ const OrderDetailPage = () => {
             minimumFractionDigits: 0,
         }).format(price);
     };
+
+    // ... (skip lines)
+
+    {
+        !payment && order.status !== 'canceled' && (
+            <div className="payment-action" style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                <Link to={`/orders/${order.id}/payment`} className="btn-payment">
+                    Create Payment
+                </Link>
+
+                {(order.status === 'created' || order.status === 'pending') && (
+                    <button
+                        onClick={handleCancelOrder}
+                        className="btn-payment"
+                        style={{ backgroundColor: '#ef4444' }} // Red color
+                    >
+                        Cancel Order
+                    </button>
+                )}
+            </div>
+        )
+    }
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('id-ID', {
@@ -118,10 +178,33 @@ const OrderDetailPage = () => {
             </div>
 
             {!payment && order.status !== 'canceled' && (
-                <div className="payment-action">
+                <div className="payment-action" style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                     <Link to={`/orders/${order.id}/payment`} className="btn-payment">
                         Create Payment
                     </Link>
+
+                    {order.status === 'created' && (
+                        <button
+                            onClick={handleCancelOrder}
+                            className="btn-payment"
+                            style={{ backgroundColor: '#ef4444' }} // Red color
+                        >
+                            Cancel Order
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {payment && payment.status === 'pending' && isAdmin() && (
+                <div className="payment-action">
+                    <button
+                        onClick={() => handleVerifyPayment(payment.id)}
+                        className="btn-payment btn-verify"
+                        style={{ backgroundColor: '#10b981', marginTop: '10px' }}
+                        disabled={verifying}
+                    >
+                        {verifying ? 'Verifying...' : 'Verify Payment (Admin)'}
+                    </button>
                 </div>
             )}
         </div>

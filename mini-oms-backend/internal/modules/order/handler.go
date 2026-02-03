@@ -78,10 +78,44 @@ func (h *Handler) Create(c echo.Context) error {
 
 	userID := c.Get("user_id").(uuid.UUID)
 
-	order, err := h.service.CreateOrder(userID, &req)
+	response, err := h.service.CreateOrder(userID, &req)
 	if err != nil {
 		return utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
 	}
 
-	return utils.SuccessResponse(c, http.StatusCreated, "Order created successfully", order)
+	return utils.SuccessResponse(c, http.StatusCreated, "Order created successfully", response)
+}
+
+// Cancel cancels an order
+// @Summary Cancel order
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Param id path string true "Order ID"
+// @Success 200 {object} utils.APIResponse
+// @Router /api/orders/{id}/cancel [post]
+func (h *Handler) Cancel(c echo.Context) error {
+	idParam := c.Param("id")
+	orderID, err := uuid.Parse(idParam)
+	if err != nil {
+		return utils.ErrorResponse(c, http.StatusBadRequest, "Invalid order ID")
+	}
+
+	userID := c.Get("user_id").(uuid.UUID)
+	role := c.Get("user_role").(string)
+
+	if err := h.service.CancelOrder(orderID, userID, role); err != nil {
+		return utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
+	}
+
+	return utils.SuccessResponse(c, http.StatusOK, "Order canceled successfully", nil)
+}
+
+// GetStats returns admin dashboard statistics
+func (h *Handler) GetStats(c echo.Context) error {
+	stats, err := h.service.GetStats()
+	if err != nil {
+		return utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+	}
+	return utils.SuccessResponse(c, http.StatusOK, "Statistics retrieved", stats)
 }

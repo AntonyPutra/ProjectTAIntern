@@ -3,6 +3,8 @@ package payment
 import (
 	"errors"
 	"mini-oms-backend/internal/models"
+	"mini-oms-backend/internal/utils"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -34,9 +36,12 @@ func (s *Service) CreatePayment(req *CreatePaymentRequest) (*models.Payment, err
 	}
 
 	// Check if payment already exists for this order
-	existingPayment, _ := s.repo.FindByOrderID(req.OrderID)
-	if existingPayment != nil {
-		return nil, errors.New("payment already exists for this order")
+	existingPayment, err := s.repo.FindByOrderID(req.OrderID)
+	if err == nil && existingPayment.ID != uuid.Nil {
+		// If existing payment is pending, return error
+		if existingPayment.Status == "pending" || existingPayment.Status == "success" {
+			return nil, errors.New("payment already exists for this order")
+		}
 	}
 
 	// Validate payment method
@@ -49,13 +54,19 @@ func (s *Service) CreatePayment(req *CreatePaymentRequest) (*models.Payment, err
 		return nil, errors.New("invalid payment method")
 	}
 
+	// Make PaymentProofURL optional (default to "-")
+	proofURL := req.PaymentProofURL
+	if proofURL == "" {
+		proofURL = "-"
+	}
+
 	// Create payment
 	payment := &models.Payment{
 		OrderID:         req.OrderID,
 		Amount:          order.TotalAmount,
 		PaymentMethod:   req.PaymentMethod,
 		Status:          "pending",
-		PaymentProofURL: req.PaymentProofURL,
+		PaymentProofURL: proofURL,
 		Notes:           req.Notes,
 	}
 
@@ -64,4 +75,61 @@ func (s *Service) CreatePayment(req *CreatePaymentRequest) (*models.Payment, err
 	}
 
 	return payment, nil
+}
+
+func (s *Service) VerifyPayment(paymentID uuid.UUID, adminID uuid.UUID) (*models.Payment, error) {
+	// Start transaction
+	tx := s.repo.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Find payment
+	var payment models.Payment
+	if err := tx.First(&payment, "id = ?", paymentID).Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("payment not found")
+	}
+
+	if payment.Status == "success" {
+		tx.Rollback()
+		return nil, errors.New("payment already verified")
+	}
+
+	// Update payment status
+	now := time.Now()
+	payment.Status = "success"
+	payment.VerifiedBy = &adminID
+	payment.VerifiedAt = &now
+
+	if err := tx.Save(&payment).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Update order status to 'processing' (Paid)
+	// We update directly the order table
+	if err := tx.Model(&models.Order{}).Where("id = ?", payment.OrderID).Update("status", models.OrderStatusProcessing).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Log Audit
+	if err := utils.LogAudit(tx, adminID, "PAYMENT_VERIFIED", "Payment", payment.ID, "Payment verified by admin"); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Commit
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	return &payment, nil
 }

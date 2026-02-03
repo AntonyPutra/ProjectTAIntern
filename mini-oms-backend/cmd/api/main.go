@@ -10,11 +10,17 @@ import (
 	"mini-oms-backend/internal/modules/payment"
 	"mini-oms-backend/internal/modules/product"
 
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
+	// Load .env file
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using environment variables")
+	}
+
 	// Load configuration
 	cfg := config.Load()
 	cfg.LogConfig()
@@ -23,6 +29,9 @@ func main() {
 	if err := db.Connect(cfg); err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
+
+	// Run Seeder & Fixer
+	db.Seed(db.GetDB())
 
 	// Initialize Echo
 	e := echo.New()
@@ -75,6 +84,7 @@ func main() {
 	protected.GET("/orders", orderHandler.GetAll)      // User sees own, Admin sees all
 	protected.GET("/orders/:id", orderHandler.GetByID) // User sees own, Admin sees all
 	protected.POST("/orders", orderHandler.Create)
+	protected.POST("/orders/:id/cancel", orderHandler.Cancel)
 
 	// Payment routes (protected)
 	protected.POST("/payments", paymentHandler.Create)
@@ -85,10 +95,16 @@ func main() {
 	admin.Use(middlewares.JWTMiddleware(cfg))
 	admin.Use(middlewares.AdminOnlyMiddleware())
 
+	// Admin stats
+	admin.GET("/admin/stats", orderHandler.GetStats)
+
 	// Product management (admin only)
 	admin.POST("/products", productHandler.Create)
 	admin.PUT("/products/:id", productHandler.Update)
 	admin.DELETE("/products/:id", productHandler.Delete)
+
+	// Payment verification (admin only)
+	admin.POST("/payments/:id/verify", paymentHandler.Verify)
 
 	// Start server
 	log.Printf("Server starting on port %s", cfg.Port)

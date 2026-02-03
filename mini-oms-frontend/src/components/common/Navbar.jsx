@@ -9,7 +9,7 @@ const Navbar = () => {
         <nav className="navbar">
             <div className="nav-container">
                 <Link to="/products" className="nav-brand">
-                    Mini OMS
+                    Whaleee<span style={{ color: '#0ea5e9' }}>Store</span> 🐳
                 </Link>
 
                 <div className="nav-menu">

@@ -43,3 +43,8 @@ func (p *Product) ReduceStock(quantity int) error {
 	p.Stock -= quantity
 	return nil
 }
+
+// IncreaseStock increases product stock (for cancellations/refunds)
+func (p *Product) IncreaseStock(quantity int) {
+	p.Stock += quantity
+}
